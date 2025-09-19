@@ -1,10 +1,7 @@
 package com.example.statsview.ui
 
 import android.content.Context
-import android.graphics.Canvas
-import android.graphics.Paint
-import android.graphics.PointF
-import android.graphics.RectF
+import android.graphics.*
 import android.util.AttributeSet
 import android.view.View
 import androidx.core.content.withStyledAttributes
@@ -14,7 +11,6 @@ import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
 import kotlin.random.Random
-
 
 class StatsView @JvmOverloads constructor(
     context: Context,
@@ -48,7 +44,7 @@ class StatsView @JvmOverloads constructor(
         }
     }
 
-    private var translateData : List<Float> = emptyList()
+    private var translateData: List<Float> = emptyList()
     var data: List<Float> = emptyList()
         set(value) {
             field = value
@@ -62,6 +58,14 @@ class StatsView @JvmOverloads constructor(
             }
             invalidate()
         }
+
+    private var animProgress: Float = 0F
+
+    fun updateAnimationProgress(progress: Float) {
+        animProgress = progress
+        invalidate()
+    }
+
     private var radius = 0F
     private var center = PointF()
     private var oval = RectF()
@@ -102,25 +106,32 @@ class StatsView @JvmOverloads constructor(
             return
         }
 
+        canvas.save()
+
+        val rotationAngle = 360F * animProgress
+        canvas.rotate(rotationAngle, center.x, center.y)
+
         var startAngle = -90F
         translateData.forEachIndexed { index, datum ->
-            var angle = datum * 360F
+            val animatedDatum = datum * animProgress
+            val angle = animatedDatum * 360F
             paint.color = colors.getOrElse(index) { generateRandomColor() }
             canvas.drawArc(oval, startAngle, angle, false, paint)
             startAngle += angle
         }
 
         if (translateData.isNotEmpty() && colors.isNotEmpty()) {
-            val startAngle = Math.toRadians(-90.0)
-            val pointX = center.x + radius * cos(startAngle).toFloat()
-            val pointY = center.y + radius * sin(startAngle).toFloat()
-
+            val startAngleRad = Math.toRadians(-90.0)
+            val pointX = center.x + radius * cos(startAngleRad).toFloat()
+            val pointY = center.y + radius * sin(startAngleRad).toFloat()
             pointPaint.color = colors[0]
             canvas.drawCircle(pointX, pointY, point, pointPaint)
         }
 
+        canvas.restore()
+
         canvas.drawText(
-            "%.2f%%".format(translateData.sum() * 100),
+            "%.2f%%".format(translateData.sum() * 100 * animProgress),
             center.x,
             center.y + textPaint.textSize / 4,
             textPaint
@@ -128,4 +139,4 @@ class StatsView @JvmOverloads constructor(
     }
 }
 
-private fun generateRandomColor(): Int = Random.nextInt(0xFF000000.toInt(), 0x1000000.toInt())
+private fun generateRandomColor(): Int = Random.nextInt(0xFF000000.toInt(), 0xFFFFFFFF.toInt())
